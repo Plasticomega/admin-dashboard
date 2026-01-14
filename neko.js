@@ -1,7 +1,11 @@
-const neko = document.getElementById("neko");
+// ===== elements =====
+const logoNeko = document.getElementById("logo-neko");
+const runnerNeko = document.getElementById("runner-neko");
+const logo = document.querySelector(".logo");
 
+// ===== sprite sheet settings =====
 const TILE = 32;
-const T = (col, row) => [col - 1, row - 1];
+const T = (col, row) => [col - 1, row - 1]; // 1-based to 0-based
 
 const SPRITES = {
 	sit: T(4, 4),
@@ -12,157 +16,172 @@ const SPRITES = {
 	walkR: [T(4, 1), T(4, 2)],
 	walkU: [T(2, 4), T(2, 3)],
 	walkD: [T(8, 3), T(7, 4)],
+
 	scratch: [T(3, 3), T(3, 4)],
 	scratchSelf: [T(6, 1), T(7, 1)],
 };
 
+// ===== helpers =====
+function setSpriteFor(el, [col, row]) {
+	el.style.backgroundPosition = `-${col * TILE}px -${row * TILE}px`;
+}
 
-const logo = document.querySelector(".logo");
-
-function computeHome() {
+function logoDockPoint() {
 	const r = logo.getBoundingClientRect();
 	return {
-		x: r.left + 10,                 // left side inside logo
-		y: r.top + r.height / 2 - 16    // vertically centered (16 = half tile)
+		x: r.left + 10,
+		y: r.top + r.height / 2 - 16,
 	};
 }
 
-let home = computeHome();
+function randChoice(arr) {
+	return arr[Math.floor(Math.random() * arr.length)];
+}
 
+// =====================================================
+// LOGO NEKO (idle only)
+// =====================================================
+let idleUntil = 0;
+let nextIdleActionAt = performance.now() + 1000;
+let idleAction = "none"; // none|yawn|scratch|scratchSelf
+let idleFrame = 0;
+let lastIdleFrameTime = 0;
 
+function animateLogoIdle(key, ts, speed = 220) {
+	if (ts - lastIdleFrameTime > speed) {
+		idleFrame = (idleFrame + 1) % 2;
+		lastIdleFrameTime = ts;
+	}
+	setSpriteFor(logoNeko, SPRITES[key][idleFrame]);
+}
+
+function tickLogo(ts) {
+	// if logo neko hidden, don't animate it
+	if (logoNeko.style.display === "none") {
+		requestAnimationFrame(tickLogo);
+		return;
+	}
+
+	// every 5s choose action (if no action running)
+	if (ts >= nextIdleActionAt && ts >= idleUntil) {
+		idleAction = randChoice(["yawn", "scratch", "scratchSelf"]);
+
+		if (idleAction === "yawn") idleUntil = ts + 3000;
+		if (idleAction === "scratch") idleUntil = ts + 3000;
+		if (idleAction === "scratchSelf") idleUntil = ts + 2000;
+
+		nextIdleActionAt = ts + 5000;
+
+		idleFrame = 0;
+		lastIdleFrameTime = 0;
+	}
+
+	// stop action when time ends
+	if (ts >= idleUntil) idleAction = "none";
+
+	// render idle
+	if (idleAction === "yawn") {
+		setSpriteFor(logoNeko, SPRITES.yawn);
+	} else if (idleAction === "scratch") {
+		animateLogoIdle("scratch", ts);
+	} else if (idleAction === "scratchSelf") {
+		animateLogoIdle("scratchSelf", ts);
+	} else {
+		setSpriteFor(logoNeko, SPRITES.sit);
+	}
+
+	requestAnimationFrame(tickLogo);
+}
+
+// =====================================================
+// RUNNER NEKO (follow + return)
+// =====================================================
+let mode = "off"; // off | follow | return
+
+let home = logoDockPoint();
 let x = home.x, y = home.y;
 let mx = x, my = y;
 
-let mode = "idle"; // idle | follow | return
-
-// ✅ slower movement
 const speedFollow = 1.35;
 const speedReturn = 2.2;
 
-// ✅ stop distance to prevent flicker
 const STOP_DIST = 24;
+const SIT_DELAY = 250;
+let lastMoveTime = 0;
 
 let walkFrame = 0;
 let lastWalkFrameTime = 0;
 
 let alertUntil = 0;
 
-// ===== idle actions =====
-let idleUntil = 0;
-let nextIdleActionAt = performance.now() + 5000;
-let idleAction = "none"; // "none" | "yawn" | "scratch" | "scratchSelf"
-let idleFrame = 0;
-let lastIdleFrameTime = 0;
-
-// prevent rapid sit/walk switching
-let lastMoveTime = 0;
-const SIT_DELAY = 250; // ms after movement stops before sitting
-
-function rand(a, b) {
-	return a + Math.random() * (b - a);
+// position runner element from x/y
+function setRunnerPos(nx, ny) {
+	x = nx;
+	y = ny;
+	runnerNeko.style.left = x + "px";
+	runnerNeko.style.top = y + "px";
 }
 
-function setSprite([col, row]) {
-	neko.style.backgroundPosition = `-${col * TILE}px -${row * TILE}px`;
-}
-
-function setPos(nx, ny) {
-	x = nx; y = ny;
-	neko.style.left = x + "px";
-	neko.style.top = y + "px";
-}
-
-function animateWalk(dir, ts) {
-	if (ts - lastWalkFrameTime > 160) { // ✅ slower animation = less jittery
+function animateRunnerWalk(dir, ts) {
+	if (ts - lastWalkFrameTime > 160) {
 		walkFrame = (walkFrame + 1) % 2;
 		lastWalkFrameTime = ts;
 	}
-	setSprite(SPRITES[dir][walkFrame]);
+	setSpriteFor(runnerNeko, SPRITES[dir][walkFrame]);
 }
-
-function animateIdle(key, ts, speed = 220) {
-	if (ts - lastIdleFrameTime > speed) {
-		idleFrame = (idleFrame + 1) % 2;
-		lastIdleFrameTime = ts;
-	}
-	setSprite(SPRITES[key][idleFrame]);
-}
-
-
-setPos(home.x, home.y);
-setSprite(SPRITES.sit);
 
 document.addEventListener("mousemove", (e) => {
 	mx = e.clientX;
 	my = e.clientY;
 });
 
-neko.addEventListener("click", () => {
-	const now = performance.now();
+// click logo neko -> spawn runner
+logoNeko.addEventListener("click", () => {
+	const r = logoNeko.getBoundingClientRect();
 
-	if (mode === "follow") {
-		mode = "return";
-	} else {
-		mode = "follow";
-		alertUntil = now + 450;
-	}
+	// hide logo neko
+	logoNeko.style.display = "none";
+
+	// show runner exactly at same place
+	runnerNeko.style.display = "block";
+	x = r.left;
+	y = r.top;
+	runnerNeko.style.left = x + "px";
+	runnerNeko.style.top = y + "px";
+
+	// set the "home" return location to logo dock point
+	home = logoDockPoint();
+
+	alertUntil = performance.now() + 450;
+	mode = "follow";
 });
 
-function tick(ts) {
-	// ALERT overrides everything briefly
+// click runner -> return
+runnerNeko.addEventListener("click", () => {
+	if (mode === "follow") mode = "return";
+});
+
+// hide runner initially
+runnerNeko.style.display = "none";
+setSpriteFor(logoNeko, SPRITES.sit);
+
+function tickRunner(ts) {
+	home = logoDockPoint();
+	if (mode === "off") {
+		requestAnimationFrame(tickRunner);
+		return;
+	}
+
+	// ALERT overrides briefly
 	if (ts < alertUntil) {
-		setSprite(SPRITES.alert);
-		requestAnimationFrame(tick);
+		setSpriteFor(runnerNeko, SPRITES.alert);
+		requestAnimationFrame(tickRunner);
 		return;
 	}
 
-	// ✅ Yawn only when idle
-	if (mode === "idle") {
-		// every 5 seconds, pick an idle action if not currently doing one
-		if (ts >= nextIdleActionAt && ts >= idleUntil) {
-			const r = Math.random();
+	// update home constantly (layout can change)
 
-			// choose action
-			if (r < 0.34) {
-				idleAction = "yawn";
-				idleUntil = ts + 2000; // 3 sec
-			} else if (r < 0.67) {
-				idleAction = "scratch";
-				idleUntil = ts + 2000; // 3 sec
-			} else {
-				idleAction = "scratchSelf";
-				idleUntil = ts + 3000; // 2 sec
-			}
-
-			// schedule next decision
-			nextIdleActionAt = ts + 5000;
-
-			// reset animation frame so it starts nicely
-			idleFrame = 0;
-			lastIdleFrameTime = 0;
-		}
-
-		// if action time is over
-		if (ts >= idleUntil) {
-			idleAction = "none";
-		}
-
-		// render idle
-		if (idleAction === "yawn") {
-			setSprite(SPRITES.yawn);
-		} else if (idleAction === "scratch") {
-			animateIdle("scratch", ts);
-		} else if (idleAction === "scratchSelf") {
-			animateIdle("scratchSelf", ts);
-		} else {
-			setSprite(SPRITES.sit);
-		}
-
-		requestAnimationFrame(tick);
-		return;
-	}
-
-	// moving modes
+	// choose target
 	let tx, ty, spd;
 	if (mode === "follow") {
 		tx = mx; ty = my; spd = speedFollow;
@@ -174,14 +193,19 @@ function tick(ts) {
 	const dy = ty - y;
 	const dist = Math.hypot(dx, dy);
 
-	// arrived at target
+	// reached target
 	if (dist < STOP_DIST) {
-		// ✅ do not instantly sit: wait a tiny moment (prevents flicker)
 		if (ts - lastMoveTime > SIT_DELAY) {
-			if (mode === "return") mode = "idle";
-			setSprite(SPRITES.sit);
+			// finished returning -> swap back
+			if (mode === "return") {
+				mode = "off";
+				runnerNeko.style.display = "none";
+				logoNeko.style.display = "block";
+			} else {
+				setSpriteFor(runnerNeko, SPRITES.sit);
+			}
 		}
-		requestAnimationFrame(tick);
+		requestAnimationFrame(tickRunner);
 		return;
 	}
 
@@ -190,19 +214,21 @@ function tick(ts) {
 	// move
 	const vx = (dx / dist) * spd;
 	const vy = (dy / dist) * spd;
-	setPos(x + vx, y + vy);
+	setRunnerPos(x + vx, y + vy);
 
-	// 4-way direction
+	// direction sprite
 	if (Math.abs(dx) > Math.abs(dy)) {
-		if (dx > 0) animateWalk("walkR", ts);
-		else animateWalk("walkL", ts);
+		if (dx > 0) animateRunnerWalk("walkR", ts);
+		else animateRunnerWalk("walkL", ts);
 	} else {
-		if (dy > 0) animateWalk("walkD", ts);
-		else animateWalk("walkU", ts);
+		if (dy > 0) animateRunnerWalk("walkD", ts);
+		else animateRunnerWalk("walkU", ts);
 	}
 
-	requestAnimationFrame(tick);
+	requestAnimationFrame(tickRunner);
 }
 
-requestAnimationFrame(tick);
+// start both loops
+requestAnimationFrame(tickLogo);
+requestAnimationFrame(tickRunner);
 

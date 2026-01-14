@@ -1,6 +1,26 @@
-div {
-	border: solid red 5px;
+body {
+	text-shadow:
+		-2px -2px 0 #fff,
+		2px -2px 0 #fff,
+		-2px 2px 0 #fff,
+		2px 2px 0 #fff;
+	color: #d68571;
 }
+
+@font-face {
+	font-family: 'kitty';
+	src: url('Sniglet-Regular.ttf')format("truetype");
+	font-weight: 400;
+	font-style: normal;
+}
+
+@font-face {
+	font-family: "kitty";
+	src: url('Sniglet-ExtraBold.ttf')format("truetype");
+	font-weight: 700;
+	font-style: normal;
+}
+
 
 #oneko {
 	transform: scale(2);
@@ -21,6 +41,7 @@ div {
 	grid-column: 1/2;
 	grid-template-rows: 1fr 10fr;
 	background-color: #fdf5e2;
+	align-items: stretch;
 }
 
 .header {
@@ -63,25 +84,104 @@ div {
 	grid-column: 2/3;
 }
 
-#neko {
+.logo {
+	position: relative;
+	display: flex;
+	/* keep cat normal */
+	align-items: center;
+	height: 96px;
+	width: 100%;
+	overflow: hidden;
+	gap: 10px;
+	/* prevents text going outside */
+}
 
-	position: fixed;
-	left: 0;
-	top: 0;
+
+#logo-neko {
+	transform: scale(3);
+	transform-origin: left center;
+	margin-right: 64px;
+}
+
+
+#logo-text {
+	font-family: "kitty", sans-serif;
+	position: absolute;
+	left: 96px;
+	/* exactly cat width */
+	top: 50%;
+	transform: translateY(-50%);
+	margin-left: 10px;
+
+	font-size: clamp(18px, 2.2vw, 150px);
+	white-space: nowrap;
+}
+
+
+#logo-neko {
+
+
 
 	width: 32px;
 	height: 32px;
+	background-image: url("oneko.gif");
+	background-repeat: no-repeat;
+	image-rendering: pixelated;
+	cursor: pointer;
+}
 
-	/* change size here */
+#runner-neko {
+	position: fixed;
+	left: 0;
+	top: 0;
 	transform: scale(3);
 	transform-origin: top left;
 
+	width: 32px;
+	height: 32px;
 	background-image: url("oneko.gif");
-	/* your sprite sheet */
 	background-repeat: no-repeat;
-
 	image-rendering: pixelated;
-	z-index: 999999;
 	cursor: pointer;
+	z-index: 999999;
 
+	display: none;
+	/* hidden until activated */
+}
+
+.menu {
+	display: grid;
+	grid-template-rows: 1fr 1fr;
+	gap: 30px;
+	font-size: clamp(14px, 1.8vw, 50px);
+	font-family: "kitty", sans-serif;
+	margin-top: 0.5vh;
+}
+
+.menu img {
+	max-width: 4rem;
+	max-height: 4rem;
+	fill: aliceblue;
+	filter: invert(71%) sepia(18%) saturate(1000%) hue-rotate(335deg) brightness(70%) contrast(95%);
+
+}
+
+.menu-top {
+	grid-row: 1/2;
+	display: flex;
+	flex-direction: column;
+	gap: 0.5vh;
+}
+
+.menu-top div {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+}
+
+
+
+.menu-bottom {
+	grid-row: 2/3;
+	display: flex;
 }
