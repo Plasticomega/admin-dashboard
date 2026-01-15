@@ -5,6 +5,7 @@ body {
 		-2px 2px 0 #fff,
 		2px 2px 0 #fff;
 	color: #d68571;
+	font-family: "kitty", sans-serif;
 }
 
 @font-face {
@@ -53,6 +54,8 @@ body {
 .header-top {
 	display: grid;
 	grid-template-columns: 5fr 2fr;
+	align-items: center;
+	align-self: start;
 }
 
 .header-bottom {
@@ -200,4 +203,54 @@ body {
 	align-items: center;
 	gap: 10px;
 	justify-content: start;
+}
+
+
+
+
+.header-top img {
+	max-width: 3.5rem;
+	max-height: 3.5rem;
+	fill: aliceblue;
+	filter: invert(71%) sepia(18%) saturate(1000%) hue-rotate(335deg) brightness(70%) contrast(95%);
+}
+
+#polite-cat {
+	max-width: none;
+	max-height: none;
+	filter: none;
+	border-radius: 50%;
+	height: 4.5rem;
+	width: 4.5rem;
+}
+
+.searchbar {
+	display: flex;
+	grid-column: 1/2;
+	align-items: center;
+}
+
+.notifications {
+	grid-column: 2/3;
+	display: flex;
+	align-items: center;
+	gap: 10px;
+}
+
+.notifications div {
+	font-size: clamp(14px, 1.8vw, 50px);
+}
+
+.searchbar div {
+	height: 40px;
+	background-color: hsla(20 40.6% 67.6% / 0.6);
+	width: 100px;
+	flex: 1;
+	margin: 20px;
+	margin-left: 5px;
+	border-radius: 30px;
+}
+
+.searchbar div:hover {
+	cursor: text;
 }
